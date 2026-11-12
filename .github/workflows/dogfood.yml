@@ -1,0 +1,29 @@
+name: dogfood
+on: [push, workflow_dispatch]
+jobs:
+  clean-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Published action vs clean YAML spec (expect success)
+        uses: RakTikoo/living-contract-diff@v0.2
+        with:
+          baseline: contract/clean-baseline.json
+          spec: contract/clean.openapi.yaml
+  drift-detected:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: drift
+        continue-on-error: true
+        uses: RakTikoo/living-contract-diff@v0.2
+        with:
+          baseline: contract/drift-baseline.json
+          spec: contract/drift.openapi.yaml
+      - name: Assert the published action failed the drift case
+        run: |
+          if [ "${{ steps.drift.outcome }}" != "failure" ]; then
+            echo "Expected the drift step to fail, got: ${{ steps.drift.outcome }}"
+            exit 1
+          fi
+          echo "Published action correctly failed on planted drift."
